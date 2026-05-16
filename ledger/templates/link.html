@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ledger — connect an account</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+           max-width: 540px; margin: 60px auto; padding: 0 20px; color: #222; }
+    h1 { font-size: 1.6em; margin-bottom: 6px; }
+    p { line-height: 1.5; color: #444; }
+    button { display: block; width: 100%; margin: 24px 0 12px;
+             padding: 14px 20px; font-size: 1em; border: none;
+             border-radius: 8px; background: #111; color: #fff; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    button:hover:not(:disabled) { background: #333; }
+    .accounts { margin: 32px 0; padding: 16px; border-radius: 8px;
+                background: #f6f7f8; font-size: 0.95em; }
+    .accounts h2 { font-size: 1em; margin: 0 0 8px; color: #666; }
+    .accounts ul { margin: 0; padding-left: 18px; }
+    .status { margin-top: 16px; padding: 12px;
+              border-radius: 6px; font-size: 0.9em; }
+    .status.ok { background: #e8f5e9; color: #1b5e20; }
+    .status.err { background: #ffebee; color: #b71c1c; }
+  </style>
+</head>
+<body>
+  <h1>ledger</h1>
+  <p>Connect each of your financial accounts via Plaid. You'll repeat this
+     for each institution (Wells Fargo, Vanguard, Robinhood, Fidelity, etc.).</p>
+
+  <button id="connect">Connect a new account</button>
+
+  <div id="status"></div>
+
+  <div class="accounts">
+    <h2>Already connected</h2>
+    <ul id="connected">
+      {% for inst in connected %}
+        <li>{{ inst }}</li>
+      {% else %}
+        <li><em>None yet</em></li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <p style="margin-top: 32px; color: #888; font-size: 0.85em;">
+    When you've connected all your accounts, close this tab and press
+    <code>Ctrl+C</code> in the terminal running <code>ledger-connect</code>.
+  </p>
+
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+  <script>
+    const linkToken = "{{ link_token }}";
+    const statusEl = document.getElementById("status");
+    const btn = document.getElementById("connect");
+
+    function showStatus(msg, cls) {
+      statusEl.innerHTML = `<div class="status ${cls}">${msg}</div>`;
+    }
+
+    const handler = Plaid.create({
+      token: linkToken,
+      onSuccess: async (publicToken, metadata) => {
+        btn.disabled = true;
+        showStatus(`Authorizing ${metadata.institution.name}...`, "ok");
+        const res = await fetch("/exchange", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            public_token: publicToken,
+            institution_name: metadata.institution.name,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          showStatus(`Connected ${metadata.institution.name}. Reloading...`, "ok");
+          setTimeout(() => location.reload(), 800);
+        } else {
+          showStatus(`Error: ${data.error}`, "err");
+          btn.disabled = false;
+        }
+      },
+      onExit: (err) => {
+        btn.disabled = false;
+        if (err) showStatus(`Exited: ${err.error_message || err.error_code}`, "err");
+      },
+    });
+
+    btn.onclick = () => handler.open();
+  </script>
+</body>
+</html>

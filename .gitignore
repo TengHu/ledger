@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+ENV/
+
+# Environment / secrets — NEVER COMMIT
+.env
+.env.local
+
+# Local data — NEVER COMMIT
+db.sqlite
+db.sqlite-journal
+*.token
+*.token.enc
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test coverage
+.coverage
+.pytest_cache/
+htmlcov/

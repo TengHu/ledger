@@ -56,11 +56,15 @@ def make_client(cfg: Config) -> plaid_api.PlaidApi:
 def create_link_token(client: plaid_api.PlaidApi) -> str:
     """Create a Link token for the Plaid Link widget.
 
-    Products requested: investments + transactions. This gives us per-position
-    holdings and full transaction history at the deepest data tier Plaid offers.
+    Required: transactions (works at every supported institution).
+    Required-if-supported: investments (returned at brokerages, skipped at
+    plain banks without breaking the Link flow). This is the right mix for
+    a personal aggregator: investments where the bank has them, transactions
+    everywhere.
     """
     request = LinkTokenCreateRequest(
-        products=[Products("investments"), Products("transactions")],
+        products=[Products("transactions")],
+        required_if_supported_products=[Products("investments")],
         client_name="ledger",
         country_codes=[CountryCode("US")],
         language="en",
